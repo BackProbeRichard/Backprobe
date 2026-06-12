@@ -159,7 +159,6 @@ def install_crash_handler() -> None:
     Logging only: device teardown on crash is the daemon's job (atexit and
     signal handlers), not the logger's.
     """
-    log = get_logger("CRASH")
     original_hook = sys.excepthook
 
     def _crash_hook(exc_type, exc_value, exc_tb):
