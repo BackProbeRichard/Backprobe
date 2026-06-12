@@ -1,0 +1,218 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1520;--bg1:#152030;--bg2:#101c28;--bg3:#1c2a3a;
+  --text-pri:#e0f4ff;--text-sec:#7aaabb;--text-muted:#3a6070;
+  --accent-hi:#00d4ee;--accent:#00b4cc;--accent-dim:#005566;
+  --border:#1a3040;--red:#e03030;--red-bg:#200808;
+}
+body{font-family:'Courier New',monospace}
+.app{background:var(--bg1);border:1px solid var(--border);overflow:hidden}
+.titlebar{background:var(--bg0);padding:5px 12px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border)}
+.tb-name{font-size:9px;color:var(--text-muted);letter-spacing:2px}
+.tb-ver{font-size:9px;color:var(--accent-hi)}
+.tab-bar{background:var(--bg0);display:flex;border-bottom:1px solid var(--border)}
+.tab{padding:7px 14px;font-size:9px;color:var(--text-muted);letter-spacing:1px;border-right:1px solid var(--border);cursor:pointer}
+.tab.active{background:var(--bg1);color:var(--accent-hi);border-bottom:2px solid var(--accent)}
+
+/* Two-column body */
+.body{display:grid;grid-template-columns:280px 1fr;min-height:360px}
+.left-col{padding:16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:10px;background:var(--bg0)}
+.right-col{padding:16px;display:flex;flex-direction:column}
+
+.section-title{font-size:8px;color:var(--text-muted);letter-spacing:2px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.field-label{font-size:9px;color:var(--text-muted);letter-spacing:0.5px}
+.field-input{background:var(--bg1);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:10px;color:var(--text-pri);font-family:inherit;width:100%}
+.field-input::placeholder{color:var(--text-muted)}
+.field-input:focus{border-color:var(--accent);outline:none}
+.field-select{background:var(--bg1);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:10px;color:var(--text-pri);font-family:inherit;width:100%}
+.field-select option{background:var(--bg1)}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin-top:2px}
+.checkbox{width:13px;height:13px;border:1px solid var(--border);border-radius:3px;background:var(--bg1);flex-shrink:0}
+.checkbox-label{font-size:9px;color:var(--text-sec)}
+
+.btn-group{display:flex;gap:8px;margin-top:auto;padding-top:12px}
+.btn{padding:7px 18px;border-radius:6px;font-size:9px;font-family:inherit;letter-spacing:0.5px;cursor:pointer;border-width:1px;border-style:solid}
+.btn-primary{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-hi)}
+.btn-neutral{background:var(--bg2);border-color:var(--border);color:var(--text-muted);opacity:0.45}
+
+/* Device info panel */
+.device-panel{flex:1;background:var(--bg0);border:1px solid var(--border);border-radius:4px;padding:14px;display:flex;flex-direction:column}
+.device-panel-title{font-size:8px;color:var(--text-muted);letter-spacing:2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.device-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.device-key{font-size:9px;color:var(--text-muted)}
+.device-val{font-size:9px;color:var(--text-sec)}
+.device-val.hi{color:var(--accent-hi)}
+.device-empty{font-size:9px;color:var(--text-muted);line-height:1.6}
+
+.sbar{background:var(--bg0);padding:4px 12px;font-size:9px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)}
+.sdot{width:6px;height:6px;border-radius:50%}
+</style>
+
+<div class="app">
+  <div class="titlebar">
+    <span class="tb-name">OBD2 SCAN TOOL</span>
+    <span class="tb-ver">v0.2.0</span>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active">Connection</div>
+    <div class="tab">Live Data</div>
+    <div class="tab">DTCs</div>
+    <div class="tab">Freeze Frame</div>
+    <div class="tab">Monitors</div>
+    <div class="tab">Vehicle Info</div>
+  </div>
+
+  <div class="body">
+    <div class="left-col">
+      <div>
+        <div class="section-title">TRANSPORT</div>
+        <div class="field">
+          <label class="field-label">Interface</label>
+          <select class="field-select" id="transport-select" onchange="setT(this.value)">
+            <option value="virtual">Virtual (offline)</option>
+            <option value="elm327">ELM327</option>
+            <option value="j2534" selected>J2534 CAN</option>
+            <option value="kline">J2534 K-Line</option>
+            <option value="doip">DoIP</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ELM327 -->
+      <div id="f-elm327" style="display:none">
+        <div class="section-title">ADAPTER</div>
+        <div class="field">
+          <label class="field-label">Serial Port</label>
+          <input class="field-input" placeholder="COM3  or  /dev/ttyUSB0">
+        </div>
+      </div>
+
+      <!-- J2534 -->
+      <div id="f-j2534">
+        <div class="section-title">DEVICE</div>
+        <div class="field">
+          <label class="field-label">J2534 Device</label>
+          <select class="field-select">
+            <option>Opus IVS SuperGoose Plus</option>
+            <option>Autel Maxiflash VCMI</option>
+            <option>Custom…</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">DLL Path</label>
+          <input class="field-input" placeholder="C:\…\J2534.dll">
+        </div>
+        <div class="checkbox-row">
+          <div class="checkbox"></div>
+          <span class="checkbox-label">CAN FD (2 Mbps)</span>
+        </div>
+      </div>
+
+      <!-- K-Line -->
+      <div id="f-kline" style="display:none">
+        <div class="section-title">DEVICE</div>
+        <div class="field">
+          <label class="field-label">J2534 Device</label>
+          <select class="field-select">
+            <option>Opus IVS SuperGoose Plus</option>
+            <option>Autel Maxiflash VCMI</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Protocol</label>
+          <select class="field-select">
+            <option>iso14230</option>
+            <option>iso9141</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- DoIP -->
+      <div id="f-doip" style="display:none">
+        <div class="section-title">GATEWAY</div>
+        <div class="field">
+          <label class="field-label">Gateway IP</label>
+          <input class="field-input" placeholder="169.254.0.10">
+        </div>
+        <div class="field">
+          <label class="field-label">Port</label>
+          <input class="field-input" placeholder="13400">
+        </div>
+        <div class="field">
+          <label class="field-label">Tester addr (hex)</label>
+          <input class="field-input" placeholder="0E00">
+        </div>
+        <div class="field">
+          <label class="field-label">ECU addr (hex)</label>
+          <input class="field-input" placeholder="0010">
+        </div>
+      </div>
+
+      <!-- Virtual -->
+      <div id="f-virtual" style="display:none">
+        <div class="section-title">OFFLINE MODE</div>
+        <div style="font-size:9px;color:var(--text-muted);line-height:1.6">No configuration required. Simulates a connected vehicle for offline testing.</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="connect()">Connect</button>
+        <button class="btn btn-neutral" id="disc-btn">Disconnect</button>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="device-panel">
+        <div class="device-panel-title">DEVICE INFO</div>
+        <div id="device-content">
+          <div class="device-empty">Not connected — device information will appear here after a successful connection.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sbar">
+    <div class="sdot" id="sdot" style="background:var(--red)"></div>
+    <span id="sbar-text" style="color:var(--text-muted)">Disconnected</span>
+  </div>
+</div>
+
+<script>
+const keys = ['elm327','j2534','kline','doip','virtual'];
+let connected = false;
+
+function setT(id) {
+  keys.forEach(k => document.getElementById('f-'+k).style.display = k===id?'block':'none');
+  if(connected) disconnect();
+}
+setT('j2534');
+
+function connect() {
+  connected = true;
+  document.getElementById('sdot').style.background = 'var(--accent-hi)';
+  document.getElementById('sbar-text').style.color = 'var(--accent-hi)';
+  document.getElementById('sbar-text').textContent = 'Connected · J2534 · Opus IVS SuperGoose Plus';
+  document.getElementById('disc-btn').style.opacity = '1';
+  document.getElementById('device-content').innerHTML = `
+    <div class="device-row"><span class="device-key">Firmware</span><span class="device-val hi">v4.2.1</span></div>
+    <div class="device-row"><span class="device-key">Serial</span><span class="device-val">SGP-00482-B</span></div>
+    <div class="device-row"><span class="device-key">Protocol</span><span class="device-val hi">ISO 15765-4 CAN</span></div>
+    <div class="device-row"><span class="device-key">Baud</span><span class="device-val">500 kbps</span></div>
+    <div class="device-row"><span class="device-key">CAN FD</span><span class="device-val">No</span></div>
+    <div class="device-row"><span class="device-key">VIN</span><span class="device-val hi">1HGBH41JXMN109186</span></div>
+    <div class="device-row"><span class="device-key">Vehicle</span><span class="device-val">2021 Toyota Tacoma 3.5L</span></div>
+  `;
+}
+
+function disconnect() {
+  connected = false;
+  document.getElementById('sdot').style.background = 'var(--red)';
+  document.getElementById('sbar-text').style.color = 'var(--text-muted)';
+  document.getElementById('sbar-text').textContent = 'Disconnected';
+  document.getElementById('disc-btn').style.opacity = '0.45';
+  document.getElementById('device-content').innerHTML = '<div class="device-empty">Not connected — device information will appear here after a successful connection.</div>';
+}
+</script>

@@ -1,0 +1,193 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1520;--bg1:#152030;--bg2:#101c28;--bg3:#1c2a3a;
+  --text-pri:#e0f4ff;--text-sec:#7aaabb;--text-muted:#3a6070;
+  --accent-hi:#00d4ee;--accent:#00b4cc;--accent-dim:#005566;
+  --border:#1a3040;--red:#e03030;--red-bg:#200808;
+  --orange:#e8761a;--orange-bg:#1a0c05;--orange-bd:#7a3a08;
+  --amber:#c8a020;--amber-bg:#1a1505;--amber-bd:#6a5210;
+}
+body{font-family:'Courier New',monospace}
+.app{background:var(--bg1);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+.titlebar{background:var(--bg0);padding:5px 12px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.tb-name{font-size:9px;color:var(--text-muted);letter-spacing:2px}
+.tb-ver{font-size:9px;color:var(--accent-hi)}
+.tab-bar{background:var(--bg0);display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:7px 14px;font-size:9px;color:var(--text-muted);letter-spacing:1px;border-right:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.tab.active{background:var(--bg1);color:var(--accent-hi);border-bottom:2px solid var(--accent)}
+.toolbar{background:var(--bg0);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tool-btn{width:32px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text-sec);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tool-btn.primary{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-hi)}
+.tool-btn.danger{background:var(--red-bg);border-color:var(--red);color:#e87060}
+.tool-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.toolbar-spacer{flex:1}
+.dtc-summary{font-size:9px}
+.body{display:flex;flex:1;overflow:hidden}
+.list-col{flex:1;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+.detail-col{width:240px;background:var(--bg0);display:flex;flex-direction:column;flex-shrink:0}
+.table-header{background:var(--bg0);border-bottom:1px solid var(--border);display:grid;grid-template-columns:90px 1fr 100px 90px;flex-shrink:0}
+.th{padding:6px 8px;font-size:8px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;border-right:1px solid var(--border)}
+.th:last-child{border-right:none}
+.table-body{flex:1;overflow-y:auto}
+.tr{display:grid;grid-template-columns:90px 1fr 100px 90px;border-bottom:1px solid var(--border);cursor:pointer}
+.tr:nth-child(odd){background:var(--bg1)}
+.tr:nth-child(even){background:var(--bg2)}
+.tr:hover{background:var(--bg3)}
+.tr.selected{background:var(--bg3)}
+.td{padding:8px 8px;font-size:10px;color:var(--text-sec);border-right:1px solid var(--border);display:flex;align-items:center}
+.td:last-child{border-right:none}
+.td.code{font-size:11px;font-weight:bold;letter-spacing:0.5px}
+.td.code.confirmed{color:var(--orange)}
+.td.code.pending{color:var(--amber)}
+.badge{font-size:8px;padding:2px 7px;border-radius:2px;font-weight:bold;letter-spacing:0.5px;white-space:nowrap}
+.badge.confirmed{background:var(--orange-bg);border:1px solid var(--orange-bd);color:var(--orange)}
+.badge.pending{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber)}
+.detail-title{font-size:8px;color:var(--text-muted);letter-spacing:2px;padding:10px 12px 6px;border-bottom:1px solid var(--border)}
+.detail-body{padding:12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1}
+.detail-empty{font-size:9px;color:var(--text-muted);line-height:1.6;padding:12px}
+.detail-code{font-size:18px;font-weight:bold;letter-spacing:1px}
+.detail-desc{font-size:10px;color:var(--text-sec);line-height:1.5;margin-top:2px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.detail-key{font-size:9px;color:var(--text-muted)}
+.detail-val{font-size:9px;color:var(--text-sec)}
+.detail-btn{margin-top:4px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text-sec);font-size:9px;font-family:inherit;cursor:pointer;width:100%;text-align:left;letter-spacing:0.5px}
+.detail-btn:hover{border-color:var(--accent);color:var(--accent-hi)}
+.has-tip{position:relative}
+.tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#060e18;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:9px;color:var(--text-pri);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:10}
+.has-tip:hover .tip{opacity:1}
+.sbar{background:var(--bg0);padding:4px 12px;font-size:9px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);flex-shrink:0}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--accent-hi)}
+</style>
+
+<div class="app">
+  <div class="titlebar">
+    <span class="tb-name">OBD2 SCAN TOOL</span>
+    <span class="tb-ver">v0.2.0</span>
+  </div>
+  <div class="tab-bar">
+    <div class="tab">Connection</div>
+    <div class="tab">Live Data</div>
+    <div class="tab active">DTCs</div>
+    <div class="tab">Freeze Frame</div>
+    <div class="tab">Monitors</div>
+    <div class="tab">Vehicle Info</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="has-tip tool-btn primary" onclick="scan()" style="font-size:15px">
+      👁<div class="tip">Read DTCs</div>
+    </div>
+    <div class="has-tip tool-btn danger" id="clear-btn" onclick="clearDTCs()" style="font-size:14px">
+      🗑<div class="tip">Clear all DTCs</div>
+    </div>
+    <div class="tool-sep"></div>
+    <div class="tool-btn" style="opacity:0.3;cursor:default">⊕</div>
+    <div class="toolbar-spacer"></div>
+    <span class="dtc-summary" id="summary">
+      <span style="color:var(--orange)">2 confirmed</span>&nbsp;·&nbsp;<span style="color:var(--amber)">1 pending</span>
+    </span>
+  </div>
+
+  <div class="body">
+    <div class="list-col">
+      <div class="table-header">
+        <div class="th">Code</div>
+        <div class="th">Description</div>
+        <div class="th">Status</div>
+        <div class="th">System</div>
+      </div>
+      <div class="table-body" id="tbody"></div>
+    </div>
+    <div class="detail-col">
+      <div class="detail-title">DTC DETAIL</div>
+      <div id="detail-content">
+        <div class="detail-empty">Select a code to view details.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sbar">
+    <div class="sdot"></div>
+    <span style="color:var(--text-muted)">Connected</span>
+    <span style="color:var(--border)">·</span>
+    <span style="color:var(--text-sec)">J2534 · Opus IVS SuperGoose Plus</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-muted)">VIN</span>
+    <span style="color:var(--text-pri);margin-left:4px">1HGBH41JXMN109186</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-sec)">2021 Toyota Tacoma 3.5L</span>
+  </div>
+</div>
+
+<script>
+const DTCS = [
+  {code:'P0171',desc:'System Too Lean (Bank 1)',status:'confirmed',system:'Engine',trips:3,mil:true,freeze:true,detail:'Fuel trim compensation has exceeded the lean threshold on Bank 1. Common causes: vacuum leak, MAF sensor, fuel pressure.'},
+  {code:'P0174',desc:'System Too Lean (Bank 2)',status:'confirmed',system:'Engine',trips:3,mil:true,freeze:true,detail:'Same lean condition on Bank 2. When both banks are lean simultaneously, an intake manifold vacuum leak or low fuel pressure is most likely.'},
+  {code:'P0420',desc:'Catalyst System Efficiency Below Threshold (Bank 1)',status:'pending',system:'Emissions',trips:1,mil:false,freeze:false,detail:'Catalyst efficiency is marginal. Pending — needs one more trip to confirm. Could be a worn catalyst or an upstream O2 sensor reporting incorrectly.'},
+];
+let selected = null, cleared = false;
+
+function renderRows() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  if (cleared) {
+    tbody.innerHTML = '<div style="padding:20px 12px;font-size:9px;color:var(--text-muted)">No DTCs stored.</div>';
+    return;
+  }
+  DTCS.forEach((dtc, i) => {
+    const tr = document.createElement('div');
+    tr.className = 'tr' + (selected===i?' selected':'');
+    tr.onclick = () => selectDTC(i);
+    tr.innerHTML = `
+      <div class="td code ${dtc.status}">${dtc.code}</div>
+      <div class="td" style="font-size:9px">${dtc.desc}</div>
+      <div class="td"><span class="badge ${dtc.status}">${dtc.status.toUpperCase()}</span></div>
+      <div class="td" style="font-size:9px;color:var(--text-muted)">${dtc.system}</div>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function selectDTC(i) {
+  selected = i;
+  renderRows();
+  const dtc = DTCS[i];
+  const color = dtc.status==='confirmed'?'var(--orange)':'var(--amber)';
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-body">
+      <div>
+        <div class="detail-code" style="color:${color}">${dtc.code}</div>
+        <div class="detail-desc">${dtc.desc}</div>
+      </div>
+      <div>
+        <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge ${dtc.status}">${dtc.status.toUpperCase()}</span></span></div>
+        <div class="detail-row"><span class="detail-key">System</span><span class="detail-val">${dtc.system}</span></div>
+        <div class="detail-row"><span class="detail-key">MIL on</span><span class="detail-val" style="color:${dtc.mil?'var(--orange)':'var(--text-muted)'}">${dtc.mil?'Yes':'No'}</span></div>
+        <div class="detail-row"><span class="detail-key">Trips</span><span class="detail-val">${dtc.trips}</span></div>
+        <div class="detail-row"><span class="detail-key">Freeze frame</span><span class="detail-val" style="color:${dtc.freeze?'var(--accent-hi)':'var(--text-muted)'}">${dtc.freeze?'Available':'None'}</span></div>
+      </div>
+      <div style="font-size:9px;color:var(--text-muted);line-height:1.6">${dtc.detail}</div>
+      ${dtc.freeze?`<button class="detail-btn">→ View freeze frame</button>`:''}
+    </div>
+  `;
+}
+
+function scan() {
+  cleared = false; selected = null;
+  document.getElementById('detail-content').innerHTML = '<div class="detail-empty">Select a code to view details.</div>';
+  document.getElementById('summary').innerHTML = '<span style="color:var(--orange)">2 confirmed</span>&nbsp;·&nbsp;<span style="color:var(--amber)">1 pending</span>';
+  renderRows();
+}
+
+function clearDTCs() {
+  if (cleared) return;
+  cleared = true; selected = null;
+  document.getElementById('detail-content').innerHTML = '<div class="detail-empty">No codes stored.</div>';
+  document.getElementById('summary').innerHTML = '<span style="color:var(--text-muted)">No DTCs stored</span>';
+  renderRows();
+}
+
+renderRows();
+</script>

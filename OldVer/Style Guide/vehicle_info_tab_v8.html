@@ -1,0 +1,139 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1520;--bg1:#152030;--bg2:#101c28;--bg3:#1c2a3a;
+  --text-pri:#e0f4ff;--text-sec:#7aaabb;--text-muted:#3a6070;
+  --accent-hi:#00d4ee;--accent:#00b4cc;--accent-dim:#005566;
+  --border:#1a3040;--orange:#e8761a;--orange-bg:#1a0c05;--orange-bd:#7a3a08;
+}
+body{font-family:'Courier New',monospace}
+.app{background:var(--bg1);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+.titlebar{background:var(--bg0);padding:5px 12px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.tb-name{font-size:9px;color:var(--text-muted);letter-spacing:2px}
+.tb-ver{font-size:9px;color:var(--accent-hi)}
+.tab-bar{background:var(--bg0);display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:7px 14px;font-size:9px;color:var(--text-muted);letter-spacing:1px;border-right:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.tab.active{background:var(--bg1);color:var(--accent-hi);border-bottom:2px solid var(--accent)}
+.toolbar{background:var(--bg0);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tool-btn{width:32px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text-sec);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tool-btn.primary{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-hi)}
+.tool-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.toolbar-spacer{flex:1}
+.content{flex:1;overflow-y:auto}
+
+/* VIN hero */
+.identity-hero{background:var(--bg0);border-bottom:1px solid var(--border);padding:16px 20px}
+.vin-label{font-size:8px;color:var(--text-muted);letter-spacing:2px;margin-bottom:6px}
+.vin-value{font-size:18px;color:var(--accent-hi);letter-spacing:2px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.decode-grid{display:grid;grid-template-columns:1fr 1fr}
+.decode-col:first-child{padding-right:20px;border-right:1px solid var(--border)}
+.decode-col:last-child{padding-left:20px}
+.decode-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.decode-row:last-child{border-bottom:none}
+.decode-key{font-size:9px;color:var(--text-muted)}
+.decode-val{font-size:10px;color:var(--text-pri)}
+
+/* Paired table */
+.paired-headers{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+.pane-header{background:var(--bg0);padding:8px 14px;font-size:8px;color:var(--text-muted);letter-spacing:2px}
+.pane-header:first-child{border-right:1px solid var(--border)}
+.paired-row{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+.paired-row:nth-child(odd){background:var(--bg1)}
+.paired-row:nth-child(even){background:var(--bg2)}
+.paired-row:hover{background:var(--bg3)}
+.cell{display:flex;justify-content:space-between;align-items:center;padding:7px 14px}
+.cell:first-child{border-right:1px solid var(--border)}
+.cell-key{font-size:9px;color:var(--text-muted);white-space:nowrap;padding-right:10px}
+.cell-val{font-size:10px;color:var(--text-pri);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell-val.warn{color:var(--orange)}
+
+/* Floating banner at bottom of content */
+.mismatch-banner{background:var(--orange-bg);border:1px solid var(--orange-bd);border-radius:4px;margin:10px 14px;padding:7px 12px;font-size:9px;color:var(--orange)}
+
+.has-tip{position:relative}
+.tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#060e18;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:9px;color:var(--text-pri);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:10}
+.has-tip:hover .tip{opacity:1}
+.sbar{background:var(--bg0);padding:4px 12px;font-size:9px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);flex-shrink:0}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--accent-hi)}
+</style>
+
+<div class="app">
+  <div class="titlebar"><span class="tb-name">OBD2 SCAN TOOL</span><span class="tb-ver">v0.2.0</span></div>
+  <div class="tab-bar">
+    <div class="tab">Connection</div>
+    <div class="tab active">Vehicle Info</div>
+    <div class="tab">Live Data</div>
+    <div class="tab">DTCs</div>
+    <div class="tab">Monitors</div>
+  </div>
+  <div class="toolbar">
+    <div class="has-tip tool-btn primary" style="font-size:15px">👁<div class="tip">Read vehicle info</div></div>
+    <div class="tool-sep"></div>
+    <div class="tool-btn" style="opacity:0.3;cursor:default">⊕</div>
+    <div class="toolbar-spacer"></div>
+  </div>
+
+  <div class="content">
+
+    <div class="identity-hero">
+      <div class="vin-label">VIN</div>
+      <div class="vin-value">1HGBH41JXMN109186</div>
+      <div class="decode-grid">
+        <div class="decode-col">
+          <div class="decode-row"><span class="decode-key">Year</span><span class="decode-val">2021</span></div>
+          <div class="decode-row"><span class="decode-key">Make</span><span class="decode-val">Honda</span></div>
+        </div>
+        <div class="decode-col">
+          <div class="decode-row"><span class="decode-key">Model</span><span class="decode-val">Accord</span></div>
+          <div class="decode-row"><span class="decode-key">Engine</span><span class="decode-val">3.5L V6</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="paired-headers">
+      <div class="pane-header">OBD-II VEHICLE INFO  (MODE 09)</div>
+      <div class="pane-header">UDS DIDs  (MODE 22)</div>
+    </div>
+
+    <div class="paired-row">
+      <div class="cell"><span class="cell-key">VIN</span><span class="cell-val">1HGBH41JXMN109186</span></div>
+      <div class="cell"><span class="cell-key">0xF190 VIN</span><span class="cell-val warn">1HGBH41JXMN109187</span></div>
+    </div>
+    <div class="paired-row">
+      <div class="cell"><span class="cell-key">Calibration ID</span><span class="cell-val">37805-RBB-A650</span></div>
+      <div class="cell"><span class="cell-key">0xF187 Part Number</span><span class="cell-val">37820-RBB-A06</span></div>
+    </div>
+    <div class="paired-row">
+      <div class="cell"><span class="cell-key">CVN</span><span class="cell-val">A3F2B819</span></div>
+      <div class="cell"><span class="cell-key">0xF80A Cal ID</span><span class="cell-val">37805-RBB-A650</span></div>
+    </div>
+    <div class="paired-row">
+      <div class="cell"><span class="cell-key">ECU Name</span><span class="cell-val">Honda ECM</span></div>
+      <div class="cell"><span class="cell-key">0xF18C Serial</span><span class="cell-val">JH2PC4004M0001234</span></div>
+    </div>
+    <div class="paired-row">
+      <div class="cell"></div>
+      <div class="cell"><span class="cell-key">0xF18B Release Date</span><span class="cell-val">2020-09-14</span></div>
+    </div>
+    <div class="paired-row">
+      <div class="cell"></div>
+      <div class="cell"><span class="cell-key">0xF197 Supplier</span><span class="cell-val">DENSO</span></div>
+    </div>
+
+    <!-- Floating banner after the table -->
+    <div class="mismatch-banner">⚠ VIN mismatch — Mode 09 and UDS 0xF190 report different VINs</div>
+
+  </div>
+
+  <div class="sbar">
+    <div class="sdot"></div>
+    <span style="color:var(--text-muted)">Connected</span><span style="color:var(--border)">·</span>
+    <span style="color:var(--text-sec)">J2534 · Opus IVS SuperGoose Plus</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-muted)">VIN</span>
+    <span style="color:var(--text-pri);margin-left:4px">1HGBH41JXMN109186</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-sec)">2021 Honda Accord 3.5L</span>
+  </div>
+</div>

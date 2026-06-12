@@ -1,0 +1,205 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1520;--bg1:#152030;--bg2:#101c28;--bg3:#1c2a3a;
+  --text-pri:#e0f4ff;--text-sec:#7aaabb;--text-muted:#3a6070;
+  --accent-hi:#00d4ee;--accent:#00b4cc;--accent-dim:#005566;
+  --border:#1a3040;--red:#e03030;
+}
+body{font-family:'Courier New',monospace}
+.app{background:var(--bg1);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+.titlebar{background:var(--bg0);padding:5px 12px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.tb-name{font-size:9px;color:var(--text-muted);letter-spacing:2px}
+.tb-ver{font-size:9px;color:var(--accent-hi)}
+.tab-bar{background:var(--bg0);display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:7px 14px;font-size:9px;color:var(--text-muted);letter-spacing:1px;border-right:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.tab.active{background:var(--bg1);color:var(--accent-hi);border-bottom:2px solid var(--accent)}
+.toolbar{background:var(--bg0);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tool-btn{width:32px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text-sec);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tool-btn.primary{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-hi)}
+.tool-btn.primary.paused{background:#1a100a;border-color:#a03030;color:#e87060}
+.tool-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.tool-label{font-size:9px;color:var(--text-muted);letter-spacing:0.5px;white-space:nowrap}
+.rate-ctrl{display:flex;align-items:center;gap:4px}
+.rate-arrow{width:20px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text-sec);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rate-arrow:hover{border-color:var(--accent);color:var(--accent-hi)}
+.rate-val{width:52px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg1);font-size:10px;font-family:inherit;text-align:center;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cb-group{display:flex;align-items:center;gap:5px;cursor:pointer}
+.cb-box{width:13px;height:13px;border-radius:3px;border:1px solid var(--border);background:var(--bg1);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--accent-hi)}
+.cb-label{font-size:9px;color:var(--text-muted)}
+.toolbar-spacer{flex:1}
+.table-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.table-header{background:var(--bg0);border-bottom:1px solid var(--border);display:grid;grid-template-columns:28px 200px 110px 72px 72px 80px;flex-shrink:0}
+.th{padding:6px 8px;font-size:8px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;border-right:1px solid var(--border)}
+.th:last-child{border-right:none}
+.table-body{flex:1;overflow-y:auto}
+.tr{display:grid;grid-template-columns:28px 200px 110px 72px 72px 80px;border-bottom:1px solid var(--border)}
+.tr:nth-child(odd){background:var(--bg1)}
+.tr:nth-child(even){background:var(--bg2)}
+.tr:hover{background:var(--bg3)}
+.td{padding:7px 8px;font-size:10px;color:var(--text-sec);border-right:1px solid var(--border);display:flex;align-items:center;overflow:hidden}
+.td:last-child{border-right:none}
+.td.val{color:var(--accent-hi);font-size:11px}
+.td.val.stale{color:var(--text-muted)}
+.td.cb{justify-content:center}
+.td-cb{width:12px;height:12px;border-radius:2px;border:1px solid var(--border);background:var(--bg0);flex-shrink:0}
+.td.muted{color:var(--text-muted);font-size:9px}
+.sbar{background:var(--bg0);padding:4px 12px;font-size:9px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);flex-shrink:0}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--accent-hi)}
+.has-tip{position:relative}
+.tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#060e18;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:9px;color:var(--text-pri);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:10}
+.has-tip:hover .tip{opacity:1}
+</style>
+
+<div class="app">
+  <div class="titlebar">
+    <span class="tb-name">OBD2 SCAN TOOL</span>
+    <span class="tb-ver">v0.2.0</span>
+  </div>
+  <div class="tab-bar">
+    <div class="tab">Connection</div>
+    <div class="tab active">Live Data</div>
+    <div class="tab">DTCs</div>
+    <div class="tab">Freeze Frame</div>
+    <div class="tab">Monitors</div>
+    <div class="tab">Vehicle Info</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="has-tip tool-btn primary" id="pause-btn" onclick="togglePause()">
+      <span id="pause-icon">⏸</span>
+      <div class="tip" id="pause-tip">Pause polling</div>
+    </div>
+    <div class="tool-sep"></div>
+    <span class="tool-label">Rate</span>
+    <div class="rate-ctrl">
+      <div class="rate-arrow has-tip" onclick="changeRate(-1)">‹<div class="tip">Slower</div></div>
+      <div class="rate-val" id="rate-display" style="color:var(--text-muted)">1 Hz</div>
+      <div class="rate-arrow has-tip" onclick="changeRate(1)">›<div class="tip">Faster</div></div>
+    </div>
+    <div class="cb-group" onclick="toggleAuto()">
+      <div class="cb-box" id="auto-cb">✓</div>
+      <span class="cb-label">Auto</span>
+    </div>
+    <div class="tool-sep"></div>
+    <div class="has-tip tool-btn" style="opacity:0.3;cursor:default">⊕<div class="tip">Reserved</div></div>
+    <div class="has-tip tool-btn" style="opacity:0.3;cursor:default">⊕<div class="tip">Reserved</div></div>
+    <div class="toolbar-spacer"></div>
+    <span style="font-size:9px;color:var(--accent-hi)" id="live-indicator">● LIVE</span>
+    <span style="font-size:9px;color:var(--text-muted)" id="poll-count">14 PIDs · 1.0 s</span>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <div class="th" style="text-align:center">☐</div>
+      <div class="th">Parameter</div>
+      <div class="th">Value</div>
+      <div class="th">Min</div>
+      <div class="th">Max</div>
+      <div class="th">Units</div>
+    </div>
+    <div class="table-body" id="tbody"></div>
+  </div>
+
+  <div class="sbar">
+    <div class="sdot"></div>
+    <span style="color:var(--text-muted)">Connected</span>
+    <span style="color:var(--border)">·</span>
+    <span style="color:var(--text-sec)">J2534 · Opus IVS SuperGoose Plus</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-muted)">VIN</span>
+    <span style="color:var(--text-pri);margin-left:4px">1HGBH41JXMN109186</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-sec)">2021 Toyota Tacoma 3.5L</span>
+  </div>
+</div>
+
+<script>
+const RATES = ['0.5 Hz','1 Hz','2 Hz','5 Hz','10 Hz'];
+let rateIdx = 1, paused = false, autoRate = true, tick = 0;
+const t0 = Date.now() - 312000;
+
+// [name, valueFn, unit]
+const DEFS = [
+  ['Engine RPM',            ()=>Math.round(820+Math.sin(tick*0.07)*380),          'rpm'],
+  ['Vehicle Speed',         ()=>0,                                                 'km/h'],
+  ['Engine Coolant Temp',   ()=>91+Math.round(Math.sin(tick*0.02)*2),             '°C'],
+  ['Intake Air Temp',       ()=>28,                                                '°C'],
+  ['MAF Air Flow Rate',     ()=>+(3.2+Math.sin(tick*0.11)*1.8).toFixed(2),        'g/s'],
+  ['Throttle Position',     ()=>+(14.5+Math.random()*0.6).toFixed(1),             '%'],
+  ['O2 Sensor B1S1',        ()=>+(0.68+Math.sin(tick*0.3)*0.28).toFixed(2),       'V'],
+  ['Short Term Fuel Trim B1',()=>+(Math.sin(tick*0.15)*3.1).toFixed(1),           '%'],
+  ['Long Term Fuel Trim B1', ()=>+(-1.6+Math.sin(tick*0.01)*0.4).toFixed(1),      '%'],
+  ['Fuel System Status',    ()=>'Closed Loop',                                     ''],
+  ['Barometric Pressure',   ()=>101,                                               'kPa'],
+  ['Timing Advance',        ()=>+(8+Math.sin(tick*0.09)*4).toFixed(1),            '°'],
+  ['Fuel Rail Pressure',    ()=>+(3.22+Math.sin(tick*0.06)*0.08).toFixed(2),      'bar'],
+  ['Run Time Since Start',  ()=>{const s=Math.floor((Date.now()-t0)/1000);return `${Math.floor(s/60)}m ${s%60}s`}, ''],
+];
+
+// Track observed min/max per PID
+const mins = {}, maxs = {};
+DEFS.forEach(([name])=>{ mins[name]=null; maxs[name]=null; });
+
+function fmt(v){ return (typeof v === 'number' || !isNaN(parseFloat(v))) ? v : v; }
+
+function renderRows() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  DEFS.forEach(([name, valFn, unit], i) => {
+    const v = valFn();
+    const num = parseFloat(v);
+    if (!isNaN(num)) {
+      if (mins[name] === null || num < mins[name]) mins[name] = num;
+      if (maxs[name] === null || num > maxs[name]) maxs[name] = num;
+    }
+    const minStr = mins[name] !== null ? (Number.isInteger(mins[name]) ? mins[name] : +mins[name].toFixed(2)) : '—';
+    const maxStr = maxs[name] !== null ? (Number.isInteger(maxs[name]) ? maxs[name] : +maxs[name].toFixed(2)) : '—';
+
+    const tr = document.createElement('div');
+    tr.className = 'tr';
+    tr.innerHTML = `
+      <div class="td cb"><div class="td-cb"></div></div>
+      <div class="td">${name}</div>
+      <div class="td val${paused?' stale':''}">${v}</div>
+      <div class="td muted">${minStr}</div>
+      <div class="td muted">${maxStr}</div>
+      <div class="td" style="color:var(--text-sec);font-size:9px">${unit}</div>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('pause-btn');
+  const icon = document.getElementById('pause-icon');
+  const tip  = document.getElementById('pause-tip');
+  const live = document.getElementById('live-indicator');
+  if (paused) {
+    btn.classList.add('paused'); icon.textContent='▶'; tip.textContent='Resume polling';
+    live.style.color='var(--text-muted)'; live.textContent='⏸ PAUSED';
+  } else {
+    btn.classList.remove('paused'); icon.textContent='⏸'; tip.textContent='Pause polling';
+    live.style.color='var(--accent-hi)'; live.textContent='● LIVE';
+  }
+}
+
+function changeRate(dir) {
+  if (autoRate) return;
+  rateIdx = Math.max(0, Math.min(RATES.length-1, rateIdx+dir));
+  document.getElementById('rate-display').textContent = RATES[rateIdx];
+}
+
+function toggleAuto() {
+  autoRate = !autoRate;
+  const cb = document.getElementById('auto-cb');
+  const rd = document.getElementById('rate-display');
+  cb.textContent = autoRate ? '✓' : '';
+  rd.style.color = autoRate ? 'var(--text-muted)' : 'var(--accent-hi)';
+}
+
+renderRows();
+setInterval(()=>{ if (!paused){ tick++; renderRows(); } }, 500);
+</script>

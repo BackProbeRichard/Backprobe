@@ -1,0 +1,34 @@
+VERSION ""
+
+NS_ :
+
+BS_:
+
+BU_: ECM HVAC BCM TCM
+
+BO_ 512 ECM_Engine_Data: 8 ECM
+ SG_ ECM_RPM : 0|16@1+ (1,0) [0|8000] "rpm" Vector__XXX
+ SG_ ECM_CoolantTemp : 16|8@1+ (1,-40) [-40|215] "degC" Vector__XXX
+ SG_ ECM_ThrottlePos : 24|8@1+ (0.392156,0) [0|100] "%" Vector__XXX
+ SG_ ECM_EngineLoad : 32|8@1+ (0.392156,0) [0|100] "%" Vector__XXX
+
+BO_ 528 ECM_AC_Data: 8 ECM
+ SG_ ECM_AC_Pressure : 0|8@1+ (1,0) [0|255] "psi" Vector__XXX
+ SG_ ECM_AC_Request : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ ECM_CompressorCmd : 9|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 848 HVAC_Status: 8 HVAC
+ SG_ HVAC_AC_Permission : 0|8@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ HVAC_BlendDoor : 8|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ HVAC_ZoneTemp : 16|8@1+ (1,0) [0|50] "degC" Vector__XXX
+ SG_ HVAC_FanSpeed : 24|8@1+ (1,0) [0|7] "" Vector__XXX
+
+BO_ 1024 BCM_Body_Status: 8 BCM
+ SG_ BCM_AC_Relay : 0|8@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ BCM_FanRelay : 8|8@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 1280 TCM_Status: 8 TCM
+ SG_ TCM_Gear : 0|8@1+ (1,0) [0|8] "" Vector__XXX
+ SG_ TCM_TCC : 8|8@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ TCM_OutputSpeed : 16|16@1+ (1,0) [0|8000] "rpm" Vector__XXX
+

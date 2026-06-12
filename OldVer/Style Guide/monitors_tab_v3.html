@@ -1,0 +1,114 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1520;--bg1:#152030;--bg2:#101c28;--bg3:#1c2a3a;
+  --text-pri:#e0f4ff;--text-sec:#7aaabb;--text-muted:#3a6070;
+  --accent-hi:#00d4ee;--accent:#00b4cc;--accent-dim:#005566;
+  --border:#1a3040;--red:#e03030;--red-bg:#200808;
+  --orange:#e8761a;--orange-bg:#1a0c05;--orange-bd:#7a3a08;
+}
+body{font-family:'Courier New',monospace}
+.app{background:var(--bg1);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+.titlebar{background:var(--bg0);padding:5px 12px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.tb-name{font-size:9px;color:var(--text-muted);letter-spacing:2px}
+.tb-ver{font-size:9px;color:var(--accent-hi)}
+.tab-bar{background:var(--bg0);display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:7px 14px;font-size:9px;color:var(--text-muted);letter-spacing:1px;border-right:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.tab.active{background:var(--bg1);color:var(--accent-hi);border-bottom:2px solid var(--accent)}
+.toolbar{background:var(--bg0);border-bottom:1px solid var(--border);padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tool-btn{width:32px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text-sec);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tool-btn.primary{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-hi)}
+.tool-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.toolbar-spacer{flex:1}
+.table-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.table-header{background:var(--bg0);border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr 110px 100px 100px 80px;flex-shrink:0}
+.th{padding:6px 10px;font-size:8px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;border-right:1px solid var(--border)}
+.th:last-child{border-right:none}
+.table-body{flex:1;overflow-y:auto}
+.tr{display:grid;grid-template-columns:1fr 110px 100px 100px 80px;border-bottom:1px solid var(--border)}
+.tr:nth-child(odd){background:var(--bg1)}
+.tr:nth-child(even){background:var(--bg2)}
+.tr:hover{background:var(--bg3)}
+.td{padding:8px 10px;border-right:1px solid var(--border);display:flex;align-items:center}
+.td:last-child{border-right:none}
+.td.desc{font-size:10px;color:var(--text-sec)}
+.td.status{justify-content:center}
+.badge{font-size:8px;padding:2px 8px;border-radius:2px;font-weight:bold;letter-spacing:0.5px;white-space:nowrap}
+.badge.pass{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent-hi)}
+.badge.fail{background:var(--orange-bg);border:1px solid var(--orange-bd);color:var(--orange)}
+.has-tip{position:relative}
+.tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#060e18;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:9px;color:var(--text-pri);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:10}
+.has-tip:hover .tip{opacity:1}
+.sbar{background:var(--bg0);padding:4px 12px;font-size:9px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);flex-shrink:0}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--accent-hi)}
+</style>
+
+<div class="app">
+  <div class="titlebar"><span class="tb-name">OBD2 SCAN TOOL</span><span class="tb-ver">v0.2.0</span></div>
+  <div class="tab-bar">
+    <div class="tab">Connection</div><div class="tab">Live Data</div>
+    <div class="tab">DTCs</div><div class="tab active">Monitors</div><div class="tab">Vehicle Info</div>
+  </div>
+  <div class="toolbar">
+    <div class="has-tip tool-btn primary" style="font-size:15px">
+      👁<div class="tip">Read monitors</div>
+    </div>
+    <div class="tool-sep"></div>
+    <div class="tool-btn" style="opacity:0.3;cursor:default">⊕</div>
+    <div class="toolbar-spacer"></div>
+    <span style="font-size:9px">
+      <span style="color:var(--accent-hi)">8 pass</span>&nbsp;·&nbsp;<span style="color:var(--orange)">1 fail</span>
+    </span>
+  </div>
+  <div class="table-wrap">
+    <div class="table-header">
+      <div class="th">Description</div>
+      <div class="th">Actual</div>
+      <div class="th">Min</div>
+      <div class="th">Max</div>
+      <div class="th">Status</div>
+    </div>
+    <div class="table-body" id="tbody"></div>
+  </div>
+  <div class="sbar">
+    <div class="sdot"></div>
+    <span style="color:var(--text-muted)">Connected</span><span style="color:var(--border)">·</span>
+    <span style="color:var(--text-sec)">J2534 · Opus IVS SuperGoose Plus</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-muted)">VIN</span>
+    <span style="color:var(--text-pri);margin-left:4px">1HGBH41JXMN109186</span>
+    <span style="color:var(--border);margin:0 4px">|</span>
+    <span style="color:var(--text-sec)">2021 Toyota Tacoma 3.5L</span>
+  </div>
+</div>
+
+<script>
+const MONITORS = [
+  ['O2 Heater B1S1 — Resistance',    '52 ohm',   '10 ohm',   '200 ohm',  'pass'],
+  ['O2 Heater B1S2 — Resistance',    '65 ohm',   '10 ohm',   '200 ohm',  'pass'],
+  ['O2 Heater B2S1 — Resistance',    '49 ohm',   '10 ohm',   '200 ohm',  'pass'],
+  ['O2 Heater B2S2 — Resistance',    '58 ohm',   '10 ohm',   '200 ohm',  'pass'],
+  ['Catalyst B1 — Efficiency',        '0.9 %',    '0.6 %',    '1 %',      'pass'],
+  ['Catalyst B2 — Efficiency',        '0.87 %',   '0.6 %',    '1 %',      'pass'],
+  ['O2 Sensor B1S1 — Rich-Lean Time', '114 ms',   '50 ms',    '300 ms',   'pass'],
+  ['O2 Sensor B1S2 — Min Voltage',    '0.04 V',   '0.00 V',   '0.15 V',   'pass'],
+  ['EVAP — Purge Flow',               '1.95 %',   '3.91 %',   '78.13 %',  'fail'],
+];
+
+const tbody = document.getElementById('tbody');
+MONITORS.forEach(([desc, actual, min, max, status]) => {
+  const isFail = status === 'fail';
+  const valColor = isFail ? 'var(--orange)' : 'var(--accent-hi)';
+  const tr = document.createElement('div');
+  tr.className = 'tr';
+  tr.innerHTML = `
+    <div class="td desc">${desc}</div>
+    <div class="td" style="font-size:11px;color:${valColor}">${actual}</div>
+    <div class="td" style="font-size:9px;color:var(--text-muted)">${min}</div>
+    <div class="td" style="font-size:9px;color:var(--text-muted)">${max}</div>
+    <div class="td status"><span class="badge ${status}">${status.toUpperCase()}</span></div>
+  `;
+  tbody.appendChild(tr);
+});
+</script>
