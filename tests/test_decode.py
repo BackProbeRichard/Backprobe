@@ -85,10 +85,11 @@ def test_vin_strips_padding():
 )
 def test_pid_value_scalars(resp, value, unit):
     r = decode.decode_pid_value(resp)
-    if isinstance(value, (int, float)):
-        assert abs(r.value - value) < 0.001
-    else:
+    if isinstance(value, str):
         assert r.value == value
+    else:
+        assert isinstance(r.value, (int, float))
+        assert abs(r.value - value) < 0.001
     assert r.unit == unit
 
 
@@ -130,7 +131,7 @@ def test_mode06_fail_when_value_above_max():
 def test_every_formula_runs_clean():
     """No lambda in the table raises on a full 4-byte payload."""
     probe = bytes([0x11, 0x22, 0x33, 0x44])
-    for num, p in pids.PIDS.items():
+    for p in pids.PIDS.values():
         if p.decode is None:
             continue
         p.decode(probe[: max(p.n_bytes, 1)])  # raises on a bad formula
