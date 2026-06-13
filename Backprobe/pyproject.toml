@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+# Tests import the package as `backprobe`; this dir holds it, so put it on
+# the import path. testpaths keeps `pytest` (no args) scoped to our suite.
+pythonpath = ["."]
+testpaths = ["tests"]
