@@ -128,6 +128,14 @@ the same through MCP.
   building on the `request()` / `session.transport` escape hatches.
 - **Service mode** — the core answering network requests (home automation).
   The data is already plain; this is a wrapper, not a rebuild.
+- **VIN log-tokenization — revisit.** Logs carry a partial VIN at write time:
+  positions 1-11 (make/model/year/plant) kept, serial (12-17) replaced by a
+  keyed HMAC token + local git-ignored keyring; the real full VIN still goes to
+  the consumer. Chosen because the runtime is stdlib-only (no reversible cipher).
+  Re-evaluate once the consumer API and deployment firm up: keyed-hash+keyring
+  vs. real symmetric encryption, key/keyring storage and rotation, and how the
+  key is shared so the same vehicle matches across machines. See
+  `backprobe/session_log.py` (tokenize_vins).
 
 ---
 
