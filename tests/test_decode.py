@@ -125,6 +125,32 @@ def test_mode06_fail_when_value_above_max():
     assert t.passed is False
 
 
+@pytest.mark.parametrize(
+    "uasid, raw, value, unit",
+    [
+        (0x16, 0x0190, 0.0, "°C"),          # Annex E.22: 0x0190 = 0 °C  (x0.1, -40)
+        (0x96, 0xFE70, -40.0, "°C"),        # E.70 signed: 0xFE70 = -40 °C
+        (0x0A, 0x2004, 999.912, "mV"),      # E.10: 0x2004 = 999.912 mV
+        (0x07, 0x0002, 0.5, "rpm"),         # E.7:  0x0002 = 0.5 rpm
+        (0x39, 0x58F0, -100.0, "%"),        # E.57: 0x58F0 = -100 % (x0.01, -327.68)
+        (0x24, 0xFFFF, 65535.0, "count"),   # E.36: 0xFFFF = 65535 counts
+        (0x81, 0xFFFF, -1.0, ""),           # E.58 signed raw: 0xFFFF = -1
+    ],
+)
+def test_mode06_scaling_matches_iso_15031_5_annex_e(uasid, raw, value, unit):
+    """UASID scaling transcribed from ISO 15031-5 Annex E, checked against the
+    standard's own worked examples (independent ground truth)."""
+    v, u = decode._scale_mode06(uasid, raw)
+    assert abs(v - value) < 1e-3
+    assert u == unit
+
+
+def test_mode06_unknown_scaling_id_passes_raw_through():
+    v, u = decode._scale_mode06(0x7E, 0x1234)   # not defined in Annex E
+    assert v == float(0x1234)
+    assert u == "scale_0x7e"
+
+
 # ─── table integrity ───────────────────────────────────────────────────────
 
 
