@@ -67,14 +67,14 @@ A dict of `request → response` byte literals for a single vehicle.
 worth the encoder code, and seeding it with the mockup's two vehicles as presets
 gives us Option B's contract-fidelity for free.
 
-> **Decision:** ___________________________________________
+> **Decision:** Option A based on our real world logs from OldVer
 
 ---
 
 ## Decision 2 — How is "a vehicle gets plugged in" simulated?
 
 The daemon polls `read_voltage()` and waits for it to cross a threshold
-(~6 V) to move HOLDING → INTERROGATING. Voltage has to change somehow.
+(~9 V) to move HOLDING → INTERROGATING. Voltage has to change somehow.
 
 ### Option A — Programmatic: `plug_in(vehicle)` / `unplug()`
 Test or script code flips presence explicitly; `read_voltage()` returns ~12,600
@@ -103,7 +103,7 @@ Voltage is high from the first read; vehicle present immediately.
 (`VirtualSession(attached=vehicle)`) for the simplest demo. B can be a thin
 script over A later if we want a hands-free showcase.
 
-> **Decision:** ___________________________________________
+> **Decision:** Option A
 
 ---
 
@@ -133,7 +133,7 @@ First profile always wins.
 **Recommendation:** **Option A.** Testing the probe is a core reason the backend
 exists; accepting anything defeats it.
 
-> **Decision:** ___________________________________________
+> **Decision:** Option A but if we only test the final profile, we never tested the first profiles. 
 
 ---
 
@@ -163,7 +163,7 @@ Encoders sit beside `decode.py` as a public module.
 day a real consumer needs it, not before. (Round-trip tests can still import the
 helpers from `virtual.py`.)
 
-> **Decision:** ___________________________________________
+> **Decision:** Option A
 
 ---
 
@@ -187,7 +187,7 @@ Every exchange sleeps a few ms.
 
 **Recommendation:** **Option A** — instant by default, latency available.
 
-> **Decision:** ___________________________________________
+> **Decision:** Option A, we can add latency if we need to debug something, but for now let it run at program speed
 
 ---
 
