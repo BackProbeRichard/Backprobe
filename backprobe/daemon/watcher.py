@@ -26,31 +26,44 @@ from backprobe import session_log
 from backprobe.daemon import interrogate
 from backprobe.daemon.events import EventLog
 from backprobe.transport.base import (
-    Device,
+    Channel,
     DeviceBusy,
     DeviceLost,
     InternalError,
+    Session,
     TransportBackend,
 )
 
 
 class State(enum.Enum):
-    SCANNING = "SCANNING"           # no device held
-    HOLDING = "HOLDING"             # device held, waiting for a vehicle
+    SCANNING = "SCANNING"  # no device held
+    HOLDING = "HOLDING"  # device held, waiting for a vehicle
     INTERROGATING = "INTERROGATING"  # vehicle present, probe + harvest
-    ATTACHED = "ATTACHED"          # connected, watching for unplug
+    ATTACHED = "ATTACHED"  # connected, watching for unplug
 
 
-_IDLE_STATES = {State.SCANNING, State.HOLDING, State.ATTACHED}  # loop polls these at cadence
+_IDLE_STATES = {
+    State.SCANNING,
+    State.HOLDING,
+    State.ATTACHED,
+}  # loop polls these at cadence
 
 
 class Watcher:
     """Owns the device while running; drives the interrogation; writes events."""
 
-    def __init__(self, backend: TransportBackend, *, events_dir: str = "logs",
-                 poll_s: float = 1.0, present_mv: int = 9000, absent_mv: int = 7000,
-                 debounce: int = 2, console: bool = True,
-                 install_stop_triggers: bool = True) -> None:
+    def __init__(
+        self,
+        backend: TransportBackend,
+        *,
+        events_dir: str = "logs",
+        poll_s: float = 1.0,
+        present_mv: int = 9000,
+        absent_mv: int = 7000,
+        debounce: int = 2,
+        console: bool = True,
+        install_stop_triggers: bool = True,
+    ) -> None:
         self._backend = backend
         self._events = EventLog(events_dir, console=console)
         self._poll_s = poll_s
@@ -62,8 +75,8 @@ class Watcher:
         self._log = session_log.get_logger("WATCHER")
 
         self._state = State.SCANNING
-        self._session = None
-        self._channel = None
+        self._session: Session | None = None
+        self._channel: Channel | None = None
         self._device_id = 1
         self._device_name = "device"
         self._present_streak = 0
@@ -90,8 +103,11 @@ class Watcher:
                     time.sleep(self._poll_s)
         finally:
             self._release()
-            self._events.daemon_stop(uptime_seconds=time.time() - started,
-                                     vehicles_logged=self._vehicles, exit_code=0)
+            self._events.daemon_stop(
+                uptime_seconds=time.time() - started,
+                vehicles_logged=self._vehicles,
+                exit_code=0,
+            )
             self._events.close()
         return 0
 
@@ -122,25 +138,29 @@ class Watcher:
     def _scanning(self) -> State:
         devices = self._backend.enumerate()
         if not devices:
-            return State.SCANNING                          # wait; loop sleeps
+            return State.SCANNING  # wait; loop sleeps
         try:
             self._session = self._backend.open(devices[0])
         except DeviceBusy:
             self._log.event("DEVICE_BUSY", device=devices[0].name)
-            return State.SCANNING                           # wait politely, retry
+            return State.SCANNING  # wait politely, retry
         except (DeviceLost, InternalError) as exc:
             self._log.error("OPEN_FAILED", exc, device=devices[0].name)
             return State.SCANNING
         report = self._session.info()
         self._device_name = report.name
-        self._events.device_opened(device=report.name, device_id=self._device_id,
-                                   firmware=report.firmware,
-                                   dll_version=report.dll_version)
+        self._events.device_opened(
+            device=report.name,
+            device_id=self._device_id,
+            firmware=report.firmware,
+            dll_version=report.dll_version,
+        )
         self._present_streak = 0
         return State.HOLDING
 
     def _holding(self) -> State:
-        mv = self._session.read_voltage()                  # may raise DeviceLost
+        assert self._session is not None  # invariant: device held in HOLDING
+        mv = self._session.read_voltage()  # may raise DeviceLost
         self._present_streak = self._present_streak + 1 if mv >= self._present_mv else 0
         if self._present_streak >= self._debounce:
             self._events.voltage_detected(voltage_mv=mv)
@@ -149,26 +169,34 @@ class Watcher:
         return State.HOLDING
 
     def _interrogating(self) -> State:
+        assert self._session is not None  # invariant: device held here
         result = interrogate.probe(self._session, self._events)
         if result is None:
-            return State.HOLDING                            # no vehicle won the probe
-        self._channel = result.channel                      # track for teardown ASAP
+            return State.HOLDING  # no vehicle won the probe
+        self._channel = result.channel  # track for teardown ASAP
         summary = interrogate.harvest(self._session, result.channel, self._events)
-        if summary is None:                                 # census found no ECU
+        if summary is None:  # census found no ECU
             self._disconnect_channel()
             return State.HOLDING
-        duration = (time.perf_counter() - self._conn_start) * 1000 if self._conn_start else 0.0
+        duration = (
+            (time.perf_counter() - self._conn_start) * 1000 if self._conn_start else 0.0
+        )
         self._events.connection_complete(
-            vin=summary.vin, protocol=interrogate.protocol_label(result.profile),
-            ecu_count=summary.ecu_count, mil_on=bool(summary.mil_on),
+            vin=summary.vin,
+            protocol=interrogate.protocol_label(result.profile),
+            ecu_count=summary.ecu_count,
+            mil_on=bool(summary.mil_on),
             stored_dtc_count=summary.dtc_count or 0,
-            mode_06_supported=summary.mode_06_supported, connected_duration_ms=duration)
+            mode_06_supported=summary.mode_06_supported,
+            connected_duration_ms=duration,
+        )
         self._vehicles += 1
         self._absent_streak = 0
         return State.ATTACHED
 
     def _attached(self) -> State:
-        mv = self._session.read_voltage()                  # may raise DeviceLost
+        assert self._session is not None  # invariant: device held in ATTACHED
+        mv = self._session.read_voltage()  # may raise DeviceLost
         self._absent_streak = self._absent_streak + 1 if mv < self._absent_mv else 0
         if self._absent_streak >= self._debounce:
             self._events.voltage_dropped(voltage_mv=mv)
@@ -184,7 +212,7 @@ class Watcher:
         if self._channel is not None:
             try:
                 self._channel.disconnect()
-            except Exception:                               # never let teardown raise
+            except Exception:  # never let teardown raise
                 pass
             self._events.channel_closed(device_id=self._device_id)
             self._channel = None
@@ -219,21 +247,24 @@ class Watcher:
     def _install_stop_triggers(self) -> None:
         """Wire every stop affordance to request_stop(); neutralize Ctrl-C."""
         import signal
+
         try:
-            signal.signal(signal.SIGINT, signal.SIG_IGN)   # Ctrl-C does nothing
+            signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl-C does nothing
         except Exception:
             pass
-        for name in ("SIGTERM", "SIGHUP", "SIGBREAK"):     # OS stop / window close (Unix)
+        for name in ("SIGTERM", "SIGHUP", "SIGBREAK"):  # OS stop / window close (Unix)
             sig = getattr(signal, name, None)
             if sig is not None:
                 try:
                     signal.signal(sig, lambda *_: self.request_stop())
                 except Exception:
                     pass
-        self._install_console_ctrl_handler()               # window close (Windows)
+        self._install_console_ctrl_handler()  # window close (Windows)
         if self._console:
-            print("Watcher running — press 'q' or close the window to stop "
-                  "(Ctrl-C is disabled).")
+            print(
+                "Watcher running — press 'q' or close the window to stop "
+                "(Ctrl-C is disabled)."
+            )
 
     def _install_console_ctrl_handler(self) -> None:
         """Windows: catch the console-close event so a window close releases the
@@ -245,11 +276,11 @@ class Watcher:
             from ctypes import wintypes
 
             @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.DWORD)
-            def _handler(ctrl_type):                       # CTRL_CLOSE_EVENT etc.
+            def _handler(ctrl_type):  # CTRL_CLOSE_EVENT etc.
                 self.request_stop()
                 return True
 
-            self._console_ctrl_ref = _handler              # keep a ref alive
+            self._console_ctrl_ref = _handler  # keep a ref alive
             ctypes.windll.kernel32.SetConsoleCtrlHandler(_handler, True)
         except Exception:
             pass
@@ -259,10 +290,12 @@ class Watcher:
         try:
             if os.name == "nt":
                 import msvcrt
+
                 if msvcrt.kbhit():
                     return msvcrt.getch() in (b"q", b"Q")
                 return False
             import select
+
             if select.select([sys.stdin], [], [], 0)[0]:
                 return sys.stdin.readline().strip().lower() == "q"
             return False
@@ -274,9 +307,13 @@ class Watcher:
     def _emit_daemon_start(self) -> None:
         devices = self._backend.enumerate()
         self._events.daemon_start(
-            python=_platform.python_version(), platform=_platform.platform(),
-            devices=[{"vendor": d.vendor, "name": d.name, "address": d.address}
-                     for d in devices])
+            python=_platform.python_version(),
+            platform=_platform.platform(),
+            devices=[
+                {"vendor": d.vendor, "name": d.name, "address": d.address}
+                for d in devices
+            ],
+        )
 
 
 _HANDLERS = {
