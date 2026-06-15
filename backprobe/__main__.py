@@ -9,6 +9,7 @@ which is how the daemon is exercised on Linux before the DLL exists (step 7).
 from __future__ import annotations
 
 import argparse
+import importlib
 import sys
 
 from backprobe import session_log
@@ -22,12 +23,10 @@ def _build_backend(args):
         attached = virtual.get_preset(args.preset) if args.preset else None
         print(f"backend: virtual (preset={args.preset or 'none — waiting'})")
         return virtual.VirtualBackend(attached=attached)
+    # j2534.py is build-order step 7. Import it dynamically so its absence before
+    # then is a clean runtime ImportError, not a static-resolution error.
     try:
-        # j2534.py is build-order step 7 — absent until then; ImportError handled
-        # below. Remove the ignore once the module exists.
-        from backprobe.transport.j2534 import (
-            J2534Backend,  # type: ignore[import-not-found]
-        )
+        j2534 = importlib.import_module("backprobe.transport.j2534")
     except ImportError:
         print("J2534 backend is not built yet (build-order step 7).", file=sys.stderr)
         print(
@@ -36,7 +35,7 @@ def _build_backend(args):
         )
         raise SystemExit(2)
     print("backend: J2534")
-    return J2534Backend()
+    return j2534.J2534Backend()
 
 
 def main(argv: list[str] | None = None) -> int:
