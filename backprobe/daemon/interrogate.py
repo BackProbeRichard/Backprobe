@@ -41,7 +41,7 @@ PROBE_PROFILES: list[ConnectProfile] = [
 PROBE_PASSES = 2                     # Decision 4: run the full list twice before giving up
 _CONFIRM = b"\x01\x00"               # Mode 01 PID 00 — the "is a vehicle really there?" query
 _GROUP_BASES = (0x00, 0x20, 0x40, 0x60, 0x80, 0xA0)
-_ECU_NAMES = {0x7E8: "Engine", 0x7E9: "Transmission", 0x7EA: "ABS", 0x7EB: "Body"}
+_ECU_NAMES = {0x7E8: "Engine", 0x7E9: "Transmission"}  # only standard OBD2 assignments
 _ASK_TIMEOUT = 1.0
 _CENSUS_WINDOW = 1.0
 
@@ -106,6 +106,11 @@ def probe(session: Session, events: EventLog, *,
                                  addressing=profile.addressing, winning_step=step,
                                  elapsed_ms=elapsed)
             _log.event("PROBE_SUCCESS", profile=profile, step=step)
+            # J2534-specific: if CLEAR_RX_BUFFER failed on this channel, emit to
+            # both logs now (Decision 3). VirtualChannel never sets this flag.
+            if getattr(channel, "rx_clear_unsupported", False):
+                code = getattr(channel, "_rx_clear_code", "UNKNOWN")
+                events.rx_clear_unsupported(j2534_code=code)
             return ProbeResult(channel, profile, step)
     events.probe_failed(attempts=tried)
     _log.event("PROBE_FAILED", attempts=tried)

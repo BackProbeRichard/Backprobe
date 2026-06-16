@@ -173,6 +173,12 @@ class EventLog:
     def device_released(self, *, device: str) -> None:
         self.emit("device_released", device=device)
 
+    def rx_clear_unsupported(self, *, j2534_code: str) -> None:
+        """CLEAR_RX_BUFFER not supported by this device — SID/PID match is active.
+        Once-per-connection device capability fact; goes in both logs (Decision 3)."""
+        self.emit("rx_clear_unsupported", j2534_code=j2534_code,
+                  note="SID/PID match active as fallback")
+
     def device_lost(self, *, device: str) -> None:
         """The held device vanished mid-run (Decision 6: recover to SCANNING)."""
         self.emit("device_lost", device=device, status="device_disconnected")
