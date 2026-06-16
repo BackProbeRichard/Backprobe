@@ -319,3 +319,47 @@ def test_rx_clear_unsupported_emitted_to_event_log(tmp_path):
     assert "rx_clear_unsupported" in event_names
     rx_ev = next(e for e in events if e["event"] == "rx_clear_unsupported")
     assert rx_ev["j2534_code"] == "ERR_NOT_SUPPORTED"
+
+
+# ─── bench regression tests ──────────────────────────────────────────────────
+
+
+class _WriteTimeoutLib(j.FakeJ2534Lib):
+    """Simulates PassThruWriteMsgs returning ERR_TIMEOUT (0x09) — seen on the
+    bench when the bitrate mismatched. Must map to Timeout, not InternalError."""
+    def write_msg(self, channel_id, data, tx_flags, timeout_ms):
+        from backprobe.transport.base import Timeout as _Timeout
+        raise _Timeout("PassThruWriteMsgs: ERR_TIMEOUT (0x09)")
+
+
+def test_write_timeout_is_timeout_not_internal_error():
+    lib     = _WriteTimeoutLib(v.get_preset("sedan_mil_on"), _noop_delay_ms=0)
+    backend = j.J2534Backend(lib=lib)
+    session = backend.open(backend.enumerate()[0])
+    ch      = session.connect(P11_500)
+    with pytest.raises(Timeout):
+        ch.ask(b"\x01\x00", 0.1)
+
+
+def test_29bit_filter_install_receives_can_29bit_id_flag():
+    """Every FC filter installed for a 29-bit channel must carry CAN_29BIT_ID
+    in tx_flags — bench finding: DLL silently rejects 29-bit filter msgs without
+    it, causing every multi-frame reply (VIN, Mode 06) to hang."""
+    from backprobe.transport.constants import CAN_29BIT_ID
+
+    recorded: list[int] = []
+
+    class _RecordingLib(j.FakeJ2534Lib):
+        def start_filter(self, channel_id, filter_type, mask, pattern,
+                         flowctrl, *, tx_flags=0):
+            recorded.append(tx_flags)
+            return super().start_filter(
+                channel_id, filter_type, mask, pattern, flowctrl, tx_flags=tx_flags,
+            )
+
+    lib     = _RecordingLib(v.get_preset("diesel_29bit"), _noop_delay_ms=0)
+    backend = j.J2534Backend(lib=lib)
+    session = backend.open(backend.enumerate()[0])
+    session.connect(P29_500)
+    assert recorded, "no filters were installed"
+    assert all(f & CAN_29BIT_ID for f in recorded)

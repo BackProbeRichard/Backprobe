@@ -139,24 +139,28 @@ class Watcher:
         devices = self._backend.enumerate()
         if not devices:
             return State.SCANNING  # wait; loop sleeps
-        try:
-            self._session = self._backend.open(devices[0])
-        except DeviceBusy:
-            self._log.event("DEVICE_BUSY", device=devices[0].name)
-            return State.SCANNING  # wait politely, retry
-        except (DeviceLost, InternalError) as exc:
-            self._log.error("OPEN_FAILED", exc, device=devices[0].name)
-            return State.SCANNING
-        report = self._session.info()
-        self._device_name = report.name
-        self._events.device_opened(
-            device=report.name,
-            device_id=self._device_id,
-            firmware=report.firmware,
-            dll_version=report.dll_version,
-        )
-        self._present_streak = 0
-        return State.HOLDING
+        for device in devices:
+            try:
+                self._session = self._backend.open(device)
+            except DeviceBusy:
+                self._log.event("DEVICE_BUSY", device=device.name)
+                continue  # another app holds it; try the next one
+            except DeviceLost:
+                continue  # not connected — expected when scanning multiple DLLs
+            except InternalError as exc:
+                self._log.error("OPEN_FAILED", exc, device=device.name)
+                continue
+            report = self._session.info()
+            self._device_name = report.name
+            self._events.device_opened(
+                device=report.name,
+                device_id=self._device_id,
+                firmware=report.firmware,
+                dll_version=report.dll_version,
+            )
+            self._present_streak = 0
+            return State.HOLDING
+        return State.SCANNING  # no device opened; wait and retry
 
     def _holding(self) -> State:
         assert self._session is not None  # invariant: device held in HOLDING

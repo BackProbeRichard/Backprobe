@@ -39,6 +39,11 @@ def _build_backend(args):
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Windows consoles default to cp1252; reconfigure before any output so
+    # unicode characters (→, —, °) don't crash on first print.
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+
     ap = argparse.ArgumentParser(
         prog="python -m backprobe", description="The Watcher — Phase 1 daemon."
     )

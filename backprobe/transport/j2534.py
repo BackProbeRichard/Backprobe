@@ -98,12 +98,20 @@ class _PASSTHRU_MSG(ctypes.Structure):
 _ERR_DEVICE_NOT_CONNECTED = 0x08
 _ERR_DEVICE_IN_USE        = 0x0E
 _ERR_BUFFER_EMPTY         = 0x10
+_ERR_TIMEOUT              = 0x09  # PassThruWriteMsgs on mismatched bitrate
+
+# After the first ECU reply, wait this long for additional ECUs before exiting
+# ask_all early. 100 ms = 2× the J1979 P2 max (50 ms); any compliant ECU that
+# will answer already has. Avoids burning up to 985 ms of silence per call on
+# single-ECU vehicles.
+_COALESCE_MS = 100
 
 _J2534_TAXONOMY: dict[int, type[TransportError] | None] = {
     _ERR_DEVICE_IN_USE:        DeviceBusy,
     _ERR_DEVICE_NOT_CONNECTED: DeviceLost,
     0x01:                      NotSupported,  # ERR_NOT_SUPPORTED
     _ERR_BUFFER_EMPTY:         None,          # keep polling — not an error
+    _ERR_TIMEOUT:              Timeout,       # write/read timeout → advance probe profile
 }
 
 
@@ -184,8 +192,11 @@ class _J2534Lib(ABC):
         mask: bytes,
         pattern: bytes,
         flowctrl: bytes | None,
+        *,
+        tx_flags: int = 0,
     ) -> int:
         """PassThruStartMsgFilter. Returns filter_id.
+        tx_flags: extra TxFlags bits for filter messages (e.g. CAN_29BIT_ID for 29-bit).
         Non-fatal: a filter warning is logged but does not abort connect."""
 
     @abstractmethod
@@ -349,11 +360,13 @@ class _RealJ2534Lib(_J2534Lib):
         mask: bytes,
         pattern: bytes,
         flowctrl: bytes | None,
+        *,
+        tx_flags: int = 0,
     ) -> int:
         def _msg(data: bytes) -> _PASSTHRU_MSG:
             m = _PASSTHRU_MSG()
             m.ProtocolID = ISO15765
-            m.TxFlags    = ISO15765_FRAME_PAD
+            m.TxFlags    = ISO15765_FRAME_PAD | tx_flags
             m.DataSize   = len(data)
             for i, b in enumerate(data):
                 m.Data[i] = b
@@ -511,6 +524,8 @@ class FakeJ2534Lib(_J2534Lib):
         mask: bytes,
         pattern: bytes,
         flowctrl: bytes | None,
+        *,
+        tx_flags: int = 0,
     ) -> int:
         return 1  # fake filter_id
 
@@ -580,7 +595,6 @@ def _enumerate_registry() -> list[Device]:
                                             vendor=vendor, name=name, address=dll
                                         )
                                     )
-                                    _log.event("DEVICE_FOUND", name=name, dll=dll)
                                 except FileNotFoundError:
                                     pass
                             i += 1
@@ -704,7 +718,7 @@ class J2534Channel(Channel):
         lib: _J2534Lib,
         channel_id: int,
         profile: ConnectProfile,
-        log: session_log.Logger,
+        log: session_log.SessionLogger,
     ) -> None:
         self._lib  = lib
         self._ch_id = channel_id
@@ -755,6 +769,7 @@ class J2534Channel(Channel):
                     mask=mask_id.to_bytes(4, "big"),
                     pattern=pattern_id.to_bytes(4, "big"),
                     flowctrl=fc_id.to_bytes(4, "big"),
+                    tx_flags=CAN_29BIT_ID,
                 )
 
     def _configure(self) -> None:
@@ -884,13 +899,19 @@ class J2534Channel(Channel):
         self._write(request)
 
         seen: dict[int, Reply] = {}
-        deadline_ms = max(1, int(window * 1000))
-        start_ms    = _mono_ms()
+        deadline_ms    = max(1, int(window * 1000))
+        start_ms       = _mono_ms()
+        last_reply_ms: int | None = None
 
         while _mono_ms() - start_ms < deadline_ms:
             remaining = deadline_ms - (_mono_ms() - start_ms)
             if remaining <= 0:
                 break
+            if last_reply_ms is not None:
+                coalesce_remaining = _COALESCE_MS - (_mono_ms() - last_reply_ms)
+                if coalesce_remaining <= 0:
+                    break
+                remaining = min(remaining, coalesce_remaining)
             msg = self._lib.read_one(self._ch_id, min(50, remaining))
             if msg is None:
                 continue
@@ -905,6 +926,7 @@ class J2534Channel(Channel):
             payload = data[4:]
             if payload and ecu_id not in seen:
                 seen[ecu_id] = Reply(ecu=ecu_id, payload=payload)
+                last_reply_ms = _mono_ms()
 
         replies = list(seen.values())
         self._log.exchange(
