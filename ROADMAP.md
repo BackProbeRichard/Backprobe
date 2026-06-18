@@ -123,7 +123,15 @@ the same through MCP.
   timestamps will answer it. The transport interface does not block either path.
 - **K-line / J1850** — new probe steps in the existing probe list.
 - **Plugins folder** — drop-in parameter packs (data, not code) that every
-  consumer gains at once; a bad plugin never crashes anything.
+  consumer gains at once; a bad plugin never crashes anything. Plugins fall into
+  two classes that must be distinguished in the plugin interface:
+  - *Passive* — PID/parameter packs, Mode 22 data tables, manufacturer decode
+    maps. No exclusive bus access needed; stream channel flows uninterrupted.
+  - *Active* — bidirectional controls, actuator tests, calibrations, flashing.
+    Require exclusive bus access; must declare this via `stream_pause` before
+    starting and `stream_resume` on completion. Stream consumers receive the
+    pause notification and know why the feed stopped. Hard diagnostic work; not
+    expected to coexist with a live data consumer.
 - **Manufacturer depth** — Mode 22 data packs first, UDS sessions later, both
   building on the `request()` / `session.transport` escape hatches.
 - **Service mode** — the core answering network requests (home automation).
