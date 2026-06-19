@@ -96,7 +96,7 @@ A consumer connects to the daemon's single port and declares which channel type 
 connection is via its first message:
 
 ```json
-{"jsonrpc": "2.0", "id": 1, "method": "open", "params": {"channel": "command"}}
+{"jsonrpc": "2.0", "id": 1, "method": "open", "params": {"channel": "admin"}}
 {"jsonrpc": "2.0", "id": 1, "method": "open", "params": {"channel": "stream"}}
 ```
 
