@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Session logs (generated at runtime, one per run)
+*.log
+*.jsonl
+!Design Docs/PHASE_1_DOCS/PHASE_1_LOG_MOCKUP.jsonl
