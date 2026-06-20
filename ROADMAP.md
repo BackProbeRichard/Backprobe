@@ -134,6 +134,13 @@ the same through MCP.
     expected to coexist with a live data consumer.
 - **Manufacturer depth** — Mode 22 data packs first, UDS sessions later, both
   building on the `request()` / `session.transport` escape hatches.
+- **Admin channel auth** — the admin channel must be authenticated before active
+  plugins (actuator tests, calibrations, flashing) ship. Proposed mechanism: a
+  startup-generated shared token written to a local file
+  (`%LOCALAPPDATA%\Backprobe\session.token`), checked on the `open` handshake.
+  The `token` field is reserved in the `open` params now so the wire format
+  does not change when this is implemented. Required before any Phase 3 feature
+  that writes to the vehicle is shipped.
 - **Service mode** — the core answering network requests (home automation).
   The data is already plain; this is a wrapper, not a rebuild.
 - **VIN log-tokenization — revisit.** Logs carry a partial VIN at write time:
