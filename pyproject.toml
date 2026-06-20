@@ -1,5 +1,14 @@
+[project]
+name = "backprobe"
+version = "0.2.0"
+description = "Abstraction layer between a vehicle and any consumer of its OBD2 data"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
 [tool.pytest.ini_options]
-# Tests import the package as `backprobe`; this dir holds it, so put it on
-# the import path. testpaths keeps `pytest` (no args) scoped to our suite.
+# Tests import the package as `backprobe`; this dir puts it on the import path.
+# testpaths keeps `pytest` (no args) scoped to our suite.
 pythonpath = ["."]
 testpaths = ["tests"]

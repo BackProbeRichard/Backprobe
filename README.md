@@ -78,11 +78,31 @@ Tier boundaries are hard. Tier 3 consumers never see a protocol name, a PID numb
 
 ## Requirements
 
+**Hardware testing (Windows bench):**
 - Windows 10/11
-- Python 3.11+ (32-bit)
+- Python 3.11+ (32-bit — J2534 DLLs are 32-bit stdcall)
 - A SAE J2534-1 compliant passthru device with drivers installed
 
-Phase 2 will add a consumer side requirement: anything that can open a TCP socket and speak JSON.
+**Development (any OS):**
+- Python 3.11+
+- No hardware required — the virtual transport backend runs the full test suite without a device
+
+Phase 2 will add a consumer-side requirement: anything that can open a TCP socket and speak JSON.
+
+---
+
+## *Getting Started*
+
+The package has no third-party runtime dependencies — it is pure standard library. The only thing to install for development is `pytest`.
+
+```bash
+git clone https://github.com/BackProbeRichard/Backprobe.git
+cd Backprobe
+pip install -e ".[dev]"
+pytest
+```
+
+All 109 tests run against a virtual transport backend and pass on any OS. No J2534 device or vehicle required to contribute.
 
 ---
 
